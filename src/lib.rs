@@ -1,23 +1,83 @@
-//use ndarray::{Array, Array3};
+use std::path::Iter;
+use image::{self, DynamicImage, GenericImageView, Rgba, Rgb, Luma};
+use nalgebra::{DMatrix, Matrix};
+
+fn matched_addition<T, F> (results: Vec<T>, kernel_size: u8) -> F
+    where T: Iterator<Item = i8>,
+    F: Iterator<Item = u8> {
+    let mut fin: [i8; 4] = [0,0,0,0];
+    let it_len = results[0].len();
+    for idx in 0..it_len {
+        fin[idx] = results.iter().fold(0, |acc, x| acc + x[idx])
+    }
+    fin[0..it_len].iter().map( |x| x as u8).collect()
+}
+
+fn matched_multiplication<T>(vector: Vec<T>, kernel: DMatrix<i8>, image: &DynamicImage, pos: &(u32, u32)) -> Vec<T>
+    where T: Iterator<Item = i8> {
+
+    // move logic to "new"
+    let col = (kernel.len() as f64).sqrt();
+    assert_eq!(col.trunc(), col);
+    // TODO: add image traversal logic !!
+        // break into own function - rgb version, rgba and greyscale!! This is for RGBA
+    let col = (kernel_size as f64).sqrt();
+    assert_eq!(col.trunc(), col, "kernel size does not have a square root!");
+    let mut results= Vec::with_capacity(kernel_size as usize);
+    for y in pos.2..(col as u32 +pos.2) {
+        for x in pos.1..(col as u32 +pos.1) {
+            let color = image.get_pixel(x, y);
+            let point_val = kernel.index((x, y));
+            let len: usize;
+            let mut val = [0i8, 0, 0, 0];
+            match color {
+                Rgba(va) => {
+                    len = val.len();
+                     for (idx, v) in va.enumarate(){
+                            val[idx] = v as i8
+                     }
+                },
+                Luma(va) => {
+                    len = 1;
+                    val[0] = v as i8
+                },
+                _ => panic!("unsupported pixel type"),
+            };
+            let newval = val[0..len].iter().map(|x| (x * point_val as i8)/kernel_size).collect();
+            results.push(newval)
+
+            }
+        }
+    results
+}
+
+// move to ::new Logic
+//fn image_kernel_ops(kernel_size: u8, image_path: &str){
 //
-//fn rgb_identity(pixel_arr: &Array3<f32>, kernel: &Array3<f32>) -> f32 {
-//    let result_m = pixel_arr.dot(kernel);
-//    result_m[[2,2]]
+//    let kernel = DMatrix::from_vec(col as u8, col as u8, vector);
+//    let img: DynamicImage = image.open(image).unwrap();
+//    let (w, h) = image::image_dimensions(image_path).unwrap();
+//}
+//
+//fn kernel_proc<T, F>(vector: Vec<i8>, kernel_size: u8, image: &DynamicImage, pos: &(u32, u32)) -> F
+//    where T: Iterator<Item = i8>,
+//    F: Iterator<Item = u8> {
+//    let multiplied: Vec<T> = matched_multiplication(vector, kernel_size, image, pos);
+//    let added: F = matched_addition(multiplied, kernel_size);
+//}
+//
+//
+//fn rgba_pixle(rgba_pxl: [u8;4],pos: &(u32, u32)){
+//
 //}
 //
 //#[cfg(test)]
 //mod tests {
 //    use super::*;
-//    use ndarray::arr3;
 //
 //    #[test]
 //    fn identity_test(){
-//        let rgb = [4f32,255,20];
-//        let null = [1f32, 1, 1];
-//        let pixel_arr = arr3(&[&null, &rgb, &null]);
-//        let kernel = arr3(&[[0f32,0,0], [0f32,1,0], [0f32, 0, 0]]);
-//        let result = rgb_identity(&pixel_arr, &kernel);
-//        assert_eq!(result, rgb)
+//
 //    }
 //}
 //
