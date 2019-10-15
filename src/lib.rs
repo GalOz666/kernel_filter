@@ -1,58 +1,38 @@
-use std::path::Iter;
 use image::{self, DynamicImage, GenericImageView, Rgba, Rgb, Luma};
-use nalgebra::{DMatrix, Matrix};
-use std::iter::FromIterator;
 
-fn matched_addition_rgba<T, F> (results: &Vec<T>, kernel_size: u8) -> F // refactor for rgba and another one for grey
-    where T: ExactSizeIterator<Item = i8>,
-    F: FromIterator<Item = u8> {
-    let mut fin: [i8; 4] = [0,0,0,0];
-    let it_len = &results;
-    for idx in 0..it_len {
-        fin[idx] = results.iter().fold(0, |acc, x| acc + x[idx])
+pub fn matched_addition_rgba_9 (results: [[u8; 4];9]) -> Vec<u8> {
+    let mut fin= Vec::with_capacity(4);
+    for idx in 0..4 {
+        fin.push(results.to_vec().iter().fold(0, |acc, x| acc + x[idx]))
     }
-    fin[0..it_len].iter().map( |x| *x as u8).collect()
+    fin
 }
 
-fn matched_multiplication<T>(vector: Vec<T>, kernel: DMatrix<i8>, image: &DynamicImage, pos: &(u32, u32)) -> Vec<T>
-    where T: ExactSizeIterator<Item = i8> {
+fn matched_multiplication_9(kernel: [u8;9], mut pixel_cell: [[u8; 4];9]) -> [[u8; 4];9] {
+    for y in 0..kernel.len() {
+        let mut pixl = pixel_cell[y];
+        let point_val = kernel[y];
+        for idx in 0..4usize {
+            pixl[idx] = (pixl[idx]*point_val)/9
+        }
+        pixel_cell[y] = pixl
+        }
+    pixel_cell
+}
 
-    // move logic to "new"
-    let kernel_size = kernel.len() as f64;
-    let col = (kernel_size).sqrt();
-    assert_eq!(col.trunc(), col);
-    // TODO: add image traversal logic !!
-        // break into own function - rgb version, rgba and greyscale!! This is for RGBA
-    let col = (kernel_size as f64).sqrt();
-    assert_eq!(col.trunc(), col, "kernel size does not have a square root!");
-    let mut results= Vec::with_capacity(kernel_size as usize);
-    for y in pos.1..(col as u32 +pos.1) {
-        for x in pos.0..(col as u32 +pos.0) {
-            let color = image.get_pixel(x, y);
-            let point_val: i8 = kernel.index((x, y));
-            let len: usize;
-            let mut val = [0i8, 0, 0, 0];
-            match color {
-                Rgba(va) => {
-                    len = val.len();
-                     for (idx, v) in va.enumarate(){
-                            val[idx] = v as i8
-                     }
-                },
-                Luma(va) => {
-                    len = 1;
-                    val[0] = va as i8
-                },
-                _ => panic!("unsupported pixel type"),
-            };
-            let newval = val[0..len].iter().map(|x| (x * point_val)/kernel_size as i8).collect();
-            results.push(newval)
-
+fn pixel_cell_9(image: &DynamicImage) -> [[u8; 4];9]  {
+    let mut cell: [[u8; 4];9] = Default::default();
+    for y in 0..3 {
+        for x in 0..3 {
+            let idx = (x+y) as usize;
+            cell[idx] = match image.get_pixel(x, y) {
+                Rgba(color) => color,
+                _ => panic!("problem processing pixel!")
             }
         }
-    results
+    }
+    cell
 }
-
 // move to ::new Logic
 //fn image_kernel_ops(kernel_size: u8, image_path: &str){
 //
@@ -67,19 +47,32 @@ fn matched_multiplication<T>(vector: Vec<T>, kernel: DMatrix<i8>, image: &Dynami
 //    let multiplied: Vec<T> = matched_multiplication(vector, kernel_size, image, pos);
 //    let added: F = matched_addition(multiplied, kernel_size);
 //}
-//
-//
-//fn rgba_pixle(rgba_pxl: [u8;4],pos: &(u32, u32)){
-//
+
 //}
-//
-//#[cfg(test)]
-//mod tests {
-//    use super::*;
-//
-//    #[test]
-//    fn identity_test(){
-//
-//    }
-//}
-//
+
+#[cfg(test)]
+#[allow(unused_imports)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn identity_test(){
+        let kernel = [
+            0u8, 0, 0,
+            0, 9, 0,
+            0, 0, 0];
+        let pixel_cell: [[u8; 4];9] = [
+            [1,2,3,4],[1,2,3,4], [1,253,3,4],
+            [1,2,3,4], [1,1,0,1], [5,2,3,4],
+            [1,2,3,4], [1,2,5,5], [1,2,3,4],
+        ];
+        let multiplied = matched_multiplication_9(kernel, pixel_cell);
+        assert_eq!(multiplied,
+                   [[0u8,0,0,0],[0,0,0,0], [0,0,0,0],
+                   [0,0,0,0], [1,1,0,1], [0,0,0,0],
+                   [0,0,0,0], [0,0,0,0], [0,0,0,0]]);
+        assert_eq!(matched_addition_rgba_9(multiplied), vec!(1,1, 0,1));
+
+    }
+}
+
