@@ -1,4 +1,4 @@
-use image::{self, DynamicImage, GenericImageView, Rgba, Rgb, Luma};
+use image::{self, DynamicImage, GenericImageView, Rgba, Rgb, Luma, ImageBuffer, GenericImage};
 
 pub fn matched_addition_rgba_9 (results: [[u8; 4];9]) -> Vec<u8> {
     let mut fin= Vec::with_capacity(4);
@@ -20,10 +20,10 @@ fn matched_multiplication_9(kernel: [u8;9], mut pixel_cell: [[u8; 4];9]) -> [[u8
     pixel_cell
 }
 
-fn pixel_cell_9(image: &DynamicImage) -> [[u8; 4];9]  {
+fn pixel_cell_9(image: &DynamicImage, position: (u32, u32)) -> [[u8; 4];9]  {
     let mut cell: [[u8; 4];9] = Default::default();
-    for y in 0..3 {
-        for x in 0..3 {
+    for y in 0..3 + position.1{
+        for x in 0..3 + position.0{
             let idx = (x+y) as usize;
             cell[idx] = match image.get_pixel(x, y) {
                 Rgba(color) => color,
@@ -33,6 +33,22 @@ fn pixel_cell_9(image: &DynamicImage) -> [[u8; 4];9]  {
     }
     cell
 }
+
+fn traverse_image_9(image: &DynamicImage, kernel: [u8;9]) -> DynamicImage {
+    let mut copy = image.clone();
+    let (w, h) = image.dimensions();
+
+    for y in 0..h-3 {
+        for x in 0..w-3 {
+            let pixle = copy.get_pixel_mut(x+1, y+1);
+            let mut cell = pixel_cell_9(image, (x, y));
+            let result = matched_addition_rgba_9(matched_multiplication_9(kernel, cell));
+            *pixle = Rgba([result[0], result[1], result[2], result[3]])
+        }
+    }
+    copy
+}
+
 // move to ::new Logic
 //fn image_kernel_ops(kernel_size: u8, image_path: &str){
 //
