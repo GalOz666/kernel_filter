@@ -1,5 +1,5 @@
 [package]
-name = "KernelFiltering"
+name = "kernel_filtering"
 version = "0.1.0"
 authors = ["galoz <gal.oz@powtoon.com>"]
 edition = "2018"
