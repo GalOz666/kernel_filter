@@ -1,6 +1,7 @@
 use image::{self, DynamicImage, GenericImageView, Rgba, Rgb, Luma, ImageBuffer, GenericImage};
 
-pub fn matched_addition_rgba_9(results: [[u8; 4];9]) -> Vec<u8> {
+// make into generic iterator for rgba
+fn matched_addition_rgba_9(results: [[u8; 4];9]) -> Vec<u8> {
     let mut fin= Vec::with_capacity(4);
     for idx in 0..4 {
         fin.push(results.to_vec().iter().fold(0, |acc: u8, x| acc.saturating_add(x[idx])))
@@ -49,18 +50,20 @@ fn traverse_image_9(image: &DynamicImage, kernel: [i8;9]) -> DynamicImage {
     copy
 }
 
-fn costume_filter(image: &DynamicImage, kernel: [i8;9]) -> DynamicImage  {
+pub fn costume_filter(image: &DynamicImage, kernel: [i8;9]) -> DynamicImage  {
     traverse_image_9(image, kernel)
 }
 
-fn gaussianish_filter(image: &DynamicImage) -> DynamicImage {
+pub fn gaussianish_filter(image: &DynamicImage) -> DynamicImage {
     let kernel = [1, 2, 1, 2, 4, 2, 1, 2, 1];
     traverse_image_9(image, kernel)
 }
 
-fn edge_detection(image: &DynamicImage) -> DynamicImage {
+pub fn edge_detection(image: &DynamicImage) -> DynamicImage {
+    // create_grey scale
     let kernel = [1, 1, 1, 1, -8, 1, 1, 1, 1];
     traverse_image_9(image, kernel)
+    // otsu threshold
 }
 
 #[cfg(test)]
@@ -88,7 +91,7 @@ mod tests {
     #[test]
     fn test_save_edge_detc() {
         let img = image::open("src/img.jpg").expect("could not find file to open!");
-        let edged = edge_detection(&img);
+        let edged = gaussianish_filter(&img);
         edged.save("copy.jpg").expect("could not save the file");
     }
 }
