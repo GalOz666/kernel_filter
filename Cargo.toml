@@ -1,12 +1,19 @@
 [package]
-name = "kernel_filtering"
+name = "kernel_filter"
 version = "0.1.0"
-authors = ["galoz <gal.oz@powtoon.com>"]
+authors = ["GalOz666 <yavinarba@gmail.com>"]
 edition = "2018"
+license = "MIT OR Apache-2.0"
+description = "Apply a convolution-filter on images with a kernel of your design!"
+repository = "TODO"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+name = "kernel_filter"
+path = "src/lib.rs"
+
 [dependencies]
-nalgebra = "0.18.1"
 image = "0.22.2"
 imageproc = "0.19.2"
