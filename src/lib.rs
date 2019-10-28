@@ -4,9 +4,9 @@ use imageproc::contrast::threshold;
 fn matched_addition_rgba(results: Vec<[f32; 4]>) -> Vec<u8> {
     let mut fin= Vec::with_capacity(4);
     for idx in 0..4 {
-        fin.push(results.iter().fold(0.0, |acc: f32, x: &[f32; 4]| acc + x[idx].round()));
+        fin.push(results.iter().fold(0.0, |acc: f32, x: &[f32; 4]| acc + x[idx]));
     }
-    fin.iter().map(|x| (x / 9_f32) as u8).collect()
+    fin.iter().map(|x| (x / results.len() as f32) as u8).collect()
 }
 
 fn matched_multiplication(kernel: &[i8], pixel_cell: &[[u8; 4]]) -> Vec<[f32; 4]> {
@@ -51,10 +51,10 @@ fn pixel_cell_25(image: &DynamicImage, position: (u32, u32)) -> [[u8; 4];25]  {
 }
 
 pub fn filter_image(mut image: DynamicImage, kernel: &[i8], dimensions: &(u32, u32)) -> DynamicImage {
-    let (w, h) = image.dimensions();
+    let (w, h) = dimensions;
     let limit = (kernel.len() as f64).sqrt() as u32;
-    for y in 0..h-limit {
-        for x in 0..w-limit {
+    for y in 0..h+1-limit {
+        for x in 0..w+1-limit {
             let mut cell = pixel_cell(&image, (x, y));
             let result = matched_addition_rgba(matched_multiplication(kernel, &cell));
             image.put_pixel( x+1, y+1,Rgba([result[0], result[1], result[2], result[3]]));
@@ -138,7 +138,7 @@ mod tests {
             1, 1, 1];
         let pixel_cell  = [
             [1,2,3,4],[1,2,3,4], [1,2,3,4],
-            [1,2,3,4], [1,1,0,1], [5,2,3,4],
+            [1,2,3,4], [1,2,3,4], [5,2,3,4],
             [1,2,3,4], [1,2,5,5], [1,2,3,4]
         ];
         let outcome = matched_multiplication( &kernel, &pixel_cell);
@@ -154,14 +154,31 @@ mod tests {
             1i8, 1, 1,
             1, 1, 1,
             1, 1, 1];
-        let pixel_cell  = [
-        [1,2,3,4],[1,2,3,4], [1,2,3,4],
-        [1,2,3,4], [1,2,3,4], [1,2,3,4],
-        [1,2,3,4], [1,2,3,4], [1,2,3,4]];
+        let pixel_cell = [
+            [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4],
+            [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4],
+            [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]];
 
         let outcome = matched_multiplication(&kernel, &pixel_cell);
         let sum = matched_addition_rgba(outcome);
-        assert_eq!(sum, vec!(1,2,3,4))
+        assert_eq!(sum, vec!(1, 2, 3, 4))
+    }
+
+    #[test]
+    fn test_identity_sum() {
+        let kernel = [
+            0i8, 0, 0,
+            0, 9, 0,
+            0, 0, 0];
+        let pixel_cell  = [
+            [1,2,3,4],[1,2,3,4], [1,2,3,4],
+            [1,2,3,4], [25,43,53,100], [5,2,3,4],
+            [1,2,3,4], [1,2,5,5], [1,2,3,4]
+        ];
+
+        let outcome = matched_multiplication(&kernel, &pixel_cell);
+        let sum = matched_addition_rgba(outcome);
+        assert_eq!(sum, vec!(25,43,53,100))
 
     }
     #[test]
@@ -176,5 +193,7 @@ mod tests {
         let img = img.grayscale();
         let edged = edge_detection(&img, 200);
         edged.save("copy_grey.jpg").expect("could not save the file");
+
     }
 }
+
